@@ -80,8 +80,8 @@ export default function CreatePostPage() {
         content: content,
         imageUrl: imageUrl,
         createdAt: serverTimestamp(),
-        likes: 0,
-        comments: 0,
+        likes: [],
+        commentCount: 0,
       });
 
       toast({

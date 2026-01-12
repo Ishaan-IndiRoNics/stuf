@@ -128,17 +128,52 @@
           "format": "date-time"
         },
         "likes": {
-          "type": "integer",
-          "description": "The number of likes the post has received."
-        },
-        "comments": {
-          "type": "integer",
-          "description": "The number of comments on the post."
+          "type": "array",
+          "description": "An array of user UIDs who have liked the post.",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
         "id",
         "authorId",
+        "content",
+        "createdAt"
+      ]
+    },
+    "Comment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Comment",
+      "type": "object",
+      "description": "Represents a comment on a post.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the comment."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The UID of the user who wrote the comment."
+        },
+        "postId": {
+          "type": "string",
+          "description": "The ID of the post this comment belongs to."
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the comment."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the comment was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "authorId",
+        "postId",
         "content",
         "createdAt"
       ]
@@ -199,8 +234,28 @@
             }
           ]
         }
+      },
+      {
+        "path": "posts/{postId}/comments/{commentId}",
+        "definition": {
+          "entityName": "Comment",
+          "schema": {
+            "$ref": "#/backend/entities/Comment"
+          },
+          "description": "Stores comments for a specific post.",
+          "params": [
+            {
+              "name": "postId",
+              "description": "The unique ID of the post."
+            },
+            {
+              "name": "commentId",
+              "description": "The unique ID of the comment."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support user authentication and profile management for the PetConnect application. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules. User profiles are stored in a dedicated collection (`users`) using their unique user ID as the document ID. This structure enables simple, path-based security rules for user profile access, ensuring only the authenticated user can read or write their own profile. This eliminates the need to denormalize any authorization data. The `users/{userId}` path structure naturally supports QAPs because list operations are inherently scoped to the user's own data. The `pets` and `posts` collections are top-level collections to allow for easy querying across all pets or posts, with an `ownerId` or `authorId` field respectively to link back to the user."
+    "reasoning": "The Firestore structure is designed to support user authentication and profile management for the PetConnect application. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules. User profiles are stored in a dedicated collection (`users`) using their unique user ID as the document ID. This structure enables simple, path-based security rules for user profile access, ensuring only the authenticated user can read or write their own profile. This eliminates the need to denormalize any authorization data. The `users/{userId}` path structure naturally supports QAPs because list operations are inherently scoped to the user's own data. The `pets` and `posts` collections are top-level collections to allow for easy querying across all pets or posts, with an `ownerId` or `authorId` field respectively to link back to the user. Comments are a subcollection of posts to keep them organized."
   }
 }

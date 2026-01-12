@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Card,
@@ -11,12 +12,15 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, MoreHorizontal, Loader2 } from 'lucide-react';
-import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, orderBy, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { PostComments } from '@/components/PostComments';
 
 // A component to render a single post, fetching author details separately
 function PostCard({ post }: { post: any }) {
+  const { user } = useUser();
   const firestore = useFirestore();
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
   // Memoize the document reference for the post's author
   const authorRef = useMemoFirebase(
@@ -26,6 +30,18 @@ function PostCard({ post }: { post: any }) {
   
   // Fetch the author's profile
   const { data: author, isLoading: isAuthorLoading } = useDoc(authorRef);
+
+  const handleLike = () => {
+    if (!user || !post.id) return;
+    const postRef = doc(firestore, 'posts', post.id);
+    // Ensure likes is an array before checking
+    const currentLikes = Array.isArray(post.likes) ? post.likes : [];
+    const isLiked = currentLikes.includes(user.uid);
+    
+    updateDocumentNonBlocking(postRef, {
+      likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
+    });
+  };
 
   if (isAuthorLoading) {
     return (
@@ -49,6 +65,10 @@ function PostCard({ post }: { post: any }) {
 
   // Format the timestamp
   const timeAgo = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'just now';
+  // Ensure likes is an array before checking its length or contents
+  const currentLikes = Array.isArray(post.likes) ? post.likes : [];
+  const likeCount = currentLikes.length;
+  const isLikedByUser = user && currentLikes.includes(user.uid);
 
   return (
     <Card className="overflow-hidden shadow-lg transition-shadow hover:shadow-xl">
@@ -78,16 +98,22 @@ function PostCard({ post }: { post: any }) {
         )}
         <p className="p-4 text-sm">{post.content}</p>
       </CardContent>
-      <CardFooter className="p-4 border-t flex items-center gap-2">
-        <Button variant="ghost" size="sm">
-          <Heart className="mr-2" />
-          <span>{post.likes || 0}</span>
+      <CardFooter className="p-2 border-t flex items-center gap-1">
+        <Button variant="ghost" size="sm" onClick={handleLike}>
+          <Heart className={cn("mr-2", isLikedByUser && "fill-red-500 text-red-500")} />
+          <span>{likeCount}</span>
         </Button>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" onClick={() => setIsCommentsOpen(true)}>
           <MessageCircle className="mr-2" />
-          <span>{post.comments || 0}</span>
+          <span>{post.commentCount || 0}</span>
         </Button>
       </CardFooter>
+       <PostComments 
+        postId={post.id} 
+        isOpen={isCommentsOpen} 
+        onOpenChange={setIsCommentsOpen} 
+        postAuthorName={author?.userName}
+      />
     </Card>
   );
 }
