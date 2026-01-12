@@ -15,6 +15,7 @@ import { Heart, MessageCircle, MoreHorizontal, Loader2 } from 'lucide-react';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { PostComments } from '@/components/PostComments';
+import { cn } from '@/lib/utils';
 
 // A component to render a single post, fetching author details separately
 function PostCard({ post }: { post: any }) {
