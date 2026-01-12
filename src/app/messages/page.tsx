@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, addDoc, serverTimestamp, doc, updateDoc, getDocs, writeBatch, limit } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -79,7 +79,7 @@ function ChatView({ conversationId }: { conversationId: string | null }) {
   const { user } = useUser();
   const firestore = useFirestore();
   const [newMessage, setNewMessage] = useState('');
-  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   const conversationRef = useMemoFirebase(() => conversationId ? doc(firestore, 'conversations', conversationId) : null, [conversationId, firestore]);
   const { data: conversation } = useDoc(conversationRef);
