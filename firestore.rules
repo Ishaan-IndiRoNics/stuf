@@ -83,5 +83,24 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && hasImmutableProfileId();
       allow delete: if isExistingOwner(userId);
     }
+    
+    /**
+     * Validates that the incoming pet data has the owner's UID.
+     */
+    function isPetOwner(userId) {
+      return request.resource.data.ownerId == userId;
+    }
+
+    /**
+     * @description Rules for the 'pets' collection. Only the owner can manage their pet's data.
+     * @path /pets/{petId}
+     * @allow (read, create) A user can read or create a pet if they are the owner.
+     * @allow (update, delete) A user can update/delete a pet document if they are the owner.
+     */
+    match /pets/{petId} {
+      allow read, create: if isSignedIn() && isPetOwner(request.auth.uid);
+      allow update, delete: if isSignedIn() && isPetOwner(request.auth.uid) && resource.data.ownerId == request.auth.uid;
+      allow list: if false;
+    }
   }
 }

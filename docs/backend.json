@@ -42,6 +42,10 @@
           "items": {
             "type": "string"
           }
+        },
+        "onboardingCompleted": {
+          "type": "boolean",
+          "description": "Whether the user has completed the onboarding process."
         }
       },
       "required": [
@@ -50,6 +54,49 @@
         "email",
         "firstName",
         "lastName"
+      ]
+    },
+    "Pet": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Pet",
+      "type": "object",
+      "description": "Represents a pet in the PetConnect application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the pet."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who owns the pet."
+        },
+        "name": {
+          "type": "string",
+          "description": "The pet's name."
+        },
+        "breed": {
+          "type": "string",
+          "description": "The pet's breed."
+        },
+        "age": {
+          "type": "string",
+          "description": "The pet's age."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the pet's profile picture.",
+          "format": "uri"
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biography or description of the pet."
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "name",
+        "breed"
       ]
     }
   },
@@ -76,8 +123,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "pets/{petId}",
+        "definition": {
+          "entityName": "Pet",
+          "schema": {
+            "$ref": "#/backend/entities/Pet"
+          },
+          "description": "Stores individual pet data. Security rules should ensure only the owner can manage their pet's data.",
+          "params": [
+            {
+              "name": "petId",
+              "description": "The unique ID of the pet."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support user authentication and profile management for the PetConnect application. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules. User profiles are stored in a dedicated collection (`users`) using their unique user ID as the document ID. This structure enables simple, path-based security rules for user profile access, ensuring only the authenticated user can read or write their own profile. This eliminates the need to denormalize any authorization data. The `users/{userId}` path structure naturally supports QAPs because list operations are inherently scoped to the user's own data. There are no global roles or collaborative data requirements."
+    "reasoning": "The Firestore structure is designed to support user authentication and profile management for the PetConnect application. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules. User profiles are stored in a dedicated collection (`users`) using their unique user ID as the document ID. This structure enables simple, path-based security rules for user profile access, ensuring only the authenticated user can read or write their own profile. This eliminates the need to denormalize any authorization data. The `users/{userId}` path structure naturally supports QAPs because list operations are inherently scoped to the user's own data. There are no global roles or collaborative data requirements. The `pets` collection is a top-level collection to store pet profiles, with an `ownerId` field to link back to the user."
   }
 }

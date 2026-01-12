@@ -62,6 +62,7 @@ export default function SignupPage() {
         profilePicture: user.photoURL || '',
         bio: '',
         petIds: [],
+        onboardingCompleted: false,
       };
 
       const userDocRef = doc(firestore, 'users', user.uid);
@@ -69,10 +70,10 @@ export default function SignupPage() {
 
       toast({
         title: 'Account Created!',
-        description: 'Welcome to PetConnect! Redirecting you now...',
+        description: 'Welcome to PetConnect! Lets get you set up...',
       });
 
-      router.push('/');
+      router.push('/onboarding');
     } catch (error: any) {
       console.error('Signup Error:', error);
       toast({

@@ -23,7 +23,8 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@/firebase';
+import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, getFirestore } from 'firebase/firestore';
 
 const MainNav = () => {
   const pathname = usePathname();
@@ -59,22 +60,39 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  const firestore = getFirestore();
+
+  const userProfileRef = useMemoFirebase(
+    () => (user ? doc(firestore, 'users', user.uid) : null),
+    [user, firestore]
+  );
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isOnboardingPage = pathname === '/onboarding';
 
   useEffect(() => {
-    if (isUserLoading) return; // Wait until user state is determined
+    const isLoading = isUserLoading || (user && isProfileLoading);
+    if (isLoading) return;
 
     if (!user && !isAuthPage) {
       router.push('/login');
     }
 
-    if (user && isAuthPage) {
-      router.push('/');
+    if (user) {
+      if (isAuthPage) {
+        router.push('/');
+      } else if (userProfile && !userProfile.onboardingCompleted && !isOnboardingPage) {
+        router.push('/onboarding');
+      } else if (userProfile && userProfile.onboardingCompleted && isOnboardingPage) {
+        router.push('/');
+      }
     }
-  }, [user, isUserLoading, isAuthPage, router]);
+  }, [user, userProfile, isUserLoading, isProfileLoading, isAuthPage, isOnboardingPage, router]);
 
-  if (isUserLoading && !isAuthPage) {
+  const isLoading = isUserLoading || (user && isProfileLoading);
+
+  if (isLoading && !isAuthPage) {
      return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -82,7 +100,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     );
   }
   
-  if (isAuthPage || !user) {
+  if (isAuthPage || isOnboardingPage || !user) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
         {children}
