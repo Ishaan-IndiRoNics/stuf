@@ -11,6 +11,7 @@ import {
   PawPrint,
   Loader2,
   LogOut,
+  PlusSquare,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -33,6 +34,7 @@ const MainNav = () => {
   const pathname = usePathname();
   const menuItems = [
     { href: '/', label: 'Feed', icon: LayoutGrid },
+    { href: '/create-post', label: 'Create Post', icon: PlusSquare },
     { href: '/breed-identifier', label: 'Identifier', icon: Scan },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
     { href: '/profile', label: 'Profile', icon: User },

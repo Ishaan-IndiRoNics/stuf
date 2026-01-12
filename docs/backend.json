@@ -98,6 +98,50 @@
         "name",
         "breed"
       ]
+    },
+    "Post": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Post",
+      "type": "object",
+      "description": "Represents a user-generated post in the community feed.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the post."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The UID of the user who created the post."
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the post."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of an image attached to the post.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the post was created.",
+          "format": "date-time"
+        },
+        "likes": {
+          "type": "integer",
+          "description": "The number of likes the post has received."
+        },
+        "comments": {
+          "type": "integer",
+          "description": "The number of comments on the post."
+        }
+      },
+      "required": [
+        "id",
+        "authorId",
+        "content",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -139,8 +183,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "posts/{postId}",
+        "definition": {
+          "entityName": "Post",
+          "schema": {
+            "$ref": "#/backend/entities/Post"
+          },
+          "description": "Stores all user-generated posts. This allows for a global feed.",
+          "params": [
+            {
+              "name": "postId",
+              "description": "The unique ID of the post."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support user authentication and profile management for the PetConnect application. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules. User profiles are stored in a dedicated collection (`users`) using their unique user ID as the document ID. This structure enables simple, path-based security rules for user profile access, ensuring only the authenticated user can read or write their own profile. This eliminates the need to denormalize any authorization data. The `users/{userId}` path structure naturally supports QAPs because list operations are inherently scoped to the user's own data. There are no global roles or collaborative data requirements. The `pets` collection is a top-level collection to store pet profiles, with an `ownerId` field to link back to the user."
+    "reasoning": "The Firestore structure is designed to support user authentication and profile management for the PetConnect application. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules. User profiles are stored in a dedicated collection (`users`) using their unique user ID as the document ID. This structure enables simple, path-based security rules for user profile access, ensuring only the authenticated user can read or write their own profile. This eliminates the need to denormalize any authorization data. The `users/{userId}` path structure naturally supports QAPs because list operations are inherently scoped to the user's own data. The `pets` and `posts` collections are top-level collections to allow for easy querying across all pets or posts, with an `ownerId` or `authorId` field respectively to link back to the user."
   }
 }
