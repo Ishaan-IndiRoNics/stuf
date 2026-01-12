@@ -10,6 +10,7 @@ import {
   User,
   PawPrint,
   Loader2,
+  LogOut,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -21,10 +22,12 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, getFirestore } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 
 const MainNav = () => {
   const pathname = usePathname();
@@ -60,6 +63,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const firestore = getFirestore();
 
   const userProfileRef = useMemoFirebase(
@@ -89,6 +93,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
       }
     }
   }, [user, userProfile, isUserLoading, isProfileLoading, isAuthPage, isOnboardingPage, router]);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
 
   const isLoading = isUserLoading || (user && isProfileLoading);
 
@@ -131,6 +140,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <SidebarContent>
           <MainNav />
         </SidebarContent>
+         <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={handleLogout}
+                className="justify-start"
+                tooltip={{ children: "Logout", side: 'right' }}
+              >
+                <LogOut />
+                <span>Logout</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 md:hidden">

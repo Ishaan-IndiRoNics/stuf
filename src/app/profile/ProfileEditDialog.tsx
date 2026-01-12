@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, useRef } from 'react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,11 +28,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User as UserIcon } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const profileSchema = z.object({
   userName: z.string().min(3, 'Username must be at least 3 characters'),
   bio: z.string().max(200, 'Bio must be 200 characters or less').optional(),
+  profilePicture: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -41,20 +44,44 @@ interface ProfileEditDialogProps {
   children: ReactNode;
 }
 
+const fileToDataUri = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
 export function ProfileEditDialog({ userProfile, children }: ProfileEditDialogProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(userProfile.profilePicture || null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       userName: userProfile.userName || '',
       bio: userProfile.bio || '',
+      profilePicture: userProfile.profilePicture || '',
     },
   });
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const dataUri = await fileToDataUri(file);
+      setImagePreview(dataUri);
+      form.setValue('profilePicture', dataUri);
+    }
+  };
+  
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
@@ -92,6 +119,38 @@ export function ProfileEditDialog({ userProfile, children }: ProfileEditDialogPr
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="flex justify-center">
+              <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
+                 <Avatar className="h-24 w-24">
+                  <AvatarImage src={imagePreview || undefined} alt={userProfile.userName} />
+                  <AvatarFallback>
+                    <UserIcon className="h-12 w-12" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-white text-xs font-semibold">Change</span>
+                </div>
+              </div>
+               <FormField
+                  control={form.control}
+                  name="profilePicture"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input 
+                          type="file" 
+                          className="hidden" 
+                          ref={fileInputRef} 
+                          onChange={handleFileChange}
+                          accept="image/png, image/jpeg, image/webp"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
+
             <FormField
               control={form.control}
               name="userName"
