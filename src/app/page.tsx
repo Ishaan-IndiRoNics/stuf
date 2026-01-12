@@ -76,7 +76,7 @@ function PostCard({ post }: { post: any }) {
       <CardHeader className="flex flex-row items-center gap-4 p-4">
         <Avatar>
           <AvatarImage src={author?.profilePicture} alt={author?.userName} />
-          <AvatarFallback>{author?.userName?.charAt(0) || 'U'}</AvatarFallback>
+          <AvatarFallback>{author?.userName?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <p className="font-semibold">{author?.userName}</p>
@@ -148,3 +148,5 @@ export default function SocialFeedPage() {
     </div>
   );
 }
+
+    

@@ -26,7 +26,6 @@ import {
   SheetTitle,
   SheetDescription,
   SheetFooter,
-  SheetClose,
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -63,7 +62,7 @@ function Comment({ comment }: { comment: any }) {
     <div className="flex items-start gap-4">
       <Avatar className="h-8 w-8">
         <AvatarImage src={author?.profilePicture} alt={author?.userName} />
-        <AvatarFallback>{author?.userName?.charAt(0) || 'U'}</AvatarFallback>
+        <AvatarFallback>{author?.userName?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
       </Avatar>
       <div className="flex-1">
         <div className="flex items-baseline gap-2">
@@ -87,8 +86,10 @@ export function PostComments({
   onOpenChange: (isOpen: boolean) => void;
   postAuthorName: string | undefined;
 }) {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const userProfileRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
+  const { data: userProfile } = useDoc(userProfileRef);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -152,12 +153,12 @@ export function PostComments({
           </ScrollArea>
         </div>
         <SheetFooter className="mt-auto">
-          {user && (
+          {user && !isUserLoading && (
             <div className="flex items-start gap-4 pt-4 border-t">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={user.photoURL || undefined} />
+                <AvatarImage src={userProfile?.profilePicture || user.photoURL || undefined} />
                 <AvatarFallback>
-                  {user.displayName?.charAt(0) || 'U'}
+                  {userProfile?.userName?.charAt(0)?.toUpperCase() || user.displayName?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 relative">
@@ -188,3 +189,5 @@ export function PostComments({
     </Sheet>
   );
 }
+
+    
