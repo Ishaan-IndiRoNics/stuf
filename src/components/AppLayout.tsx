@@ -1,7 +1,7 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { type ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { type ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import {
   LayoutGrid,
@@ -9,6 +9,7 @@ import {
   Scan,
   User,
   PawPrint,
+  Loader2,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -22,6 +23,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { useUser } from '@/firebase';
 
 const MainNav = () => {
   const pathname = usePathname();
@@ -55,9 +57,32 @@ const MainNav = () => {
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isUserLoading } = useUser();
+
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
-  if (isAuthPage) {
+  useEffect(() => {
+    if (isUserLoading) return; // Wait until user state is determined
+
+    if (!user && !isAuthPage) {
+      router.push('/login');
+    }
+
+    if (user && isAuthPage) {
+      router.push('/');
+    }
+  }, [user, isUserLoading, isAuthPage, router]);
+
+  if (isUserLoading && !isAuthPage) {
+     return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (isAuthPage || !user) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
         {children}
