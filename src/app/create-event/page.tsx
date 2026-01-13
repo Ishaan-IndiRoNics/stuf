@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -34,17 +34,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 
 const eventSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   description: z.string().max(500, 'Description must be 500 characters or less').optional(),
   location: z.string().min(3, 'Location is required'),
   petType: z.enum(['All', 'Dog', 'Cat', 'Bird', 'Rabbit', 'Other']),
-  date: z.date({
+  date: z.coerce.date({
     required_error: 'A date is required.',
   }),
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Please enter a valid time in HH:MM format."),
@@ -85,7 +81,7 @@ export default function CreateEventPage() {
       const [hours, minutes] = data.time.split(':').map(Number);
       const combinedDateTime = new Date(data.date);
       combinedDateTime.setHours(hours, minutes);
-
+      
       const eventsCol = collection(firestore, 'events');
       addDocumentNonBlocking(eventsCol, {
         authorId: user.uid,
@@ -198,44 +194,20 @@ export default function CreateEventPage() {
                 />
               </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                  <FormField
                   control={form.control}
                   name="date"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col justify-end">
+                    <FormItem>
                       <FormLabel>Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date(new Date().setHours(0, 0, 0, 0))
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <FormControl>
+                         <Input 
+                            type="date" 
+                            {...field}
+                            value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value || ''}
+                            />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
