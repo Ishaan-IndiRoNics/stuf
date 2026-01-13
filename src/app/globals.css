@@ -77,3 +77,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .rdp-head_row {
+    @apply flex justify-between;
+  }
+}
