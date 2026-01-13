@@ -128,25 +128,6 @@ const DUMMY_USERS = [
   },
 ];
 
-async function deleteAllUsers() {
-    try {
-        const listUsersResult = await auth.listUsers(1000);
-        const uidsToDelete = listUsersResult.users.map(userRecord => userRecord.uid);
-        if (uidsToDelete.length > 0) {
-            console.log(`Deleting ${uidsToDelete.length} existing users...`);
-            const result = await auth.deleteUsers(uidsToDelete);
-            console.log(`Successfully deleted ${result.successCount} users.`);
-            if (result.failureCount > 0) {
-                console.warn(`Failed to delete ${result.failureCount} users.`);
-            }
-        } else {
-            console.log('No existing users to delete in Auth.');
-        }
-    } catch (error) {
-        console.error('Error deleting users:', error);
-    }
-}
-
 async function clearCollection(collectionPath: string) {
     const collectionRef = firestore.collection(collectionPath);
     const snapshot = await collectionRef.get();
@@ -170,9 +151,7 @@ async function clearCollection(collectionPath: string) {
 async function seedDatabase() {
   console.log('Starting database seed...');
   
-  // Clean up existing data
-  await deleteAllUsers();
-  await clearCollection('users');
+  // Clean up existing data, but not users
   await clearCollection('pets');
   await clearCollection('posts');
   console.log('Cleanup complete. Starting to seed new data...');
@@ -181,17 +160,12 @@ async function seedDatabase() {
 
   for (const userData of DUMMY_USERS) {
     try {
-      console.log(`Creating auth user: ${userData.email}`);
-      const userRecord = await auth.createUser({
-        email: userData.email,
-        password: 'password',
-        displayName: `${userData.firstName} ${userData.lastName}`,
-        emailVerified: true,
-        disabled: false
-      });
+      console.log(`Looking up user: ${userData.email}`);
+      // Find existing user by email instead of creating a new one
+      const userRecord = await auth.getUserByEmail(userData.email);
 
       const uid = userRecord.uid;
-      createdUserIds[userData.userName] = uid; // Store UID by username for post creation
+      createdUserIds[userData.userName] = uid; // Store UID for post creation
       const petIds: string[] = [];
       
       const petsCollection = firestore.collection('pets');
@@ -210,7 +184,7 @@ async function seedDatabase() {
           console.log(`  - Staging pet: ${petData.name} for user ${userData.email}`);
       }
 
-      // Stage user profile document for creation
+      // Stage user profile document for creation/update
       batch.set(userProfileRef, {
         id: uid,
         email: userData.email,
@@ -224,13 +198,17 @@ async function seedDatabase() {
         petIds: petIds,
         discoverable: userData.discoverable,
         onboardingCompleted: true,
-        profilePicture: `https://i.pravatar.cc/150?u=${userData.email}`
-      });
+        profilePicture: userRecord.photoURL || `https://i.pravatar.cc/150?u=${userData.email}`
+      }, { merge: true }); // Use merge to avoid overwriting existing fields unnecessarily
       
       await batch.commit();
-      console.log(`Successfully created user, profile, and pets for ${userData.email}`);
+      console.log(`Successfully seeded data for existing user ${userData.email}`);
     } catch (error: any) {
-      console.error(`Failed to create user ${userData.email}:`, error);
+       if (error.code === 'auth/user-not-found') {
+        console.warn(`Skipping seed for ${userData.email} because the user does not exist in Firebase Auth.`);
+      } else {
+        console.error(`Failed to seed data for ${userData.email}:`, error);
+      }
     }
   }
 
@@ -239,7 +217,7 @@ async function seedDatabase() {
   const postsCollection = firestore.collection('posts');
   const DUMMY_POSTS = [
     {
-      authorId: createdUserIds['sara_paws'],
+      authorUserName: 'sara_paws',
       content: 'Beautiful day for a hike with Max! He absolutely loves the mountains.',
       imageUrl: 'https://picsum.photos/seed/hike_day/600/600',
       createdAt: Timestamp.now(),
@@ -247,7 +225,7 @@ async function seedDatabase() {
       commentCount: 0,
     },
     {
-      authorId: createdUserIds['arjun_and_luna'],
+      authorUserName: 'arjun_and_luna',
       content: 'I think Luna is plotting world domination from her cardboard box. Should I be worried? 😂',
       imageUrl: 'https://picsum.photos/seed/luna_box/600/600',
       createdAt: Timestamp.fromMillis(Timestamp.now().toMillis() - 3600000), // 1 hour ago
@@ -255,7 +233,7 @@ async function seedDatabase() {
       commentCount: 0,
     },
     {
-      authorId: createdUserIds['chen_walks_dogs'],
+      authorUserName: 'chen_walks_dogs',
       content: 'Rocky and Apollo enjoying some puppuccinos after a long walk in the park.',
       imageUrl: 'https://picsum.photos/seed/puppuccino/600/600',
       createdAt: Timestamp.fromMillis(Timestamp.now().toMillis() - 86400000), // 1 day ago
@@ -263,7 +241,7 @@ async function seedDatabase() {
       commentCount: 0,
     },
     {
-      authorId: createdUserIds['priya_and_kiwi'],
+      authorUserName: 'priya_and_kiwi',
       content: 'Kiwi learned a new trick today! So proud of my little feathered genius.',
       createdAt: Timestamp.fromMillis(Timestamp.now().toMillis() - 172800000), // 2 days ago
       likes: [],
@@ -272,13 +250,19 @@ async function seedDatabase() {
   ];
 
   for (const postData of DUMMY_POSTS) {
-    if (postData.authorId) {
+    const authorId = createdUserIds[postData.authorUserName];
+    if (authorId) {
       const postRef = postsCollection.doc();
       await postRef.set({
-        ...postData,
+        authorId: authorId,
+        content: postData.content,
+        imageUrl: postData.imageUrl,
+        createdAt: postData.createdAt,
+        likes: postData.likes,
+        commentCount: postData.commentCount,
         id: postRef.id
       });
-      console.log(`  - Created post for user ${Object.keys(createdUserIds).find(key => createdUserIds[key] === postData.authorId)}`);
+      console.log(`  - Created post for user ${postData.authorUserName}`);
     }
   }
 
