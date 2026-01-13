@@ -13,6 +13,7 @@ import {
   LogOut,
   PlusSquare,
   BrainCircuit,
+  Compass,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -36,6 +37,7 @@ const MainNav = () => {
   const menuItems = [
     { href: '/', label: 'Feed', icon: LayoutGrid },
     { href: '/create-post', label: 'Create Post', icon: PlusSquare },
+    { href: '/find', label: 'Find', icon: Compass },
     { href: '/breed-identifier', label: 'Identifier', icon: Scan },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
     { href: '/advice', label: 'Advice', icon: BrainCircuit },
