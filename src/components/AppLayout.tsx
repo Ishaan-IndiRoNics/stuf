@@ -14,6 +14,7 @@ import {
   PlusSquare,
   BrainCircuit,
   Compass,
+  CalendarDays,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -48,6 +49,7 @@ const MainNav = ({ userProfile }: { userProfile: any }) => {
       disabled: !hasLocation,
       tooltip: 'Add your location in your profile to find pet parents.',
     },
+    { href: '/events', label: 'Events', icon: CalendarDays },
     { href: '/breed-identifier', label: 'Identifier', icon: Scan },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
     { href: '/advice', label: 'Advice', icon: BrainCircuit },
