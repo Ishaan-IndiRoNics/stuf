@@ -63,7 +63,7 @@ export function AdviceClient() {
 
     startTransition(async () => {
         try {
-            const advice = await getInstantAdvice({ userId: user.uid, question: input });
+            const advice = await getInstantAdvice({ question: input });
             const assistantMessage: Message = {
                 id: crypto.randomUUID(),
                 role: 'assistant',
