@@ -1,3 +1,4 @@
+
 // To run this script, use: npm run seed
 // This script will populate your Firestore database with dummy data.
 // Before running, make sure you have authenticated with the Firebase CLI
@@ -60,20 +61,20 @@ const DUMMY_USERS = [
     ],
   },
   {
-    email: 'leo.g@example.com',
+    email: 'arjun.r@example.com',
     password: 'password123',
-    firstName: 'Leo',
-    lastName: 'Gonzalez',
-    userName: 'leo_and_luna',
-    bio: 'Cat dad to a mischievous calico named Luna. Software engineer by day, professional cat cuddler by night.',
-    city: 'San Francisco',
-    state: 'CA',
-    country: 'USA',
+    firstName: 'Arjun',
+    lastName: 'Rao',
+    userName: 'arjun_and_luna',
+    bio: 'Cat dad to a mischievous Indie cat named Luna. Software engineer by day, professional cat cuddler by night.',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    country: 'India',
     discoverable: true,
     pets: [
       {
         name: 'Luna',
-        breed: 'Calico',
+        breed: 'Indie',
         age: '2 years',
         bio: 'I may be small, but I am the queen of this castle. I enjoy knocking things off tables.',
         imageUrl: 'https://picsum.photos/seed/luna/400/400'
@@ -109,15 +110,15 @@ const DUMMY_USERS = [
     ],
   },
   {
-    email: 'emily.r@example.com',
+    email: 'priya.s@example.com',
     password: 'password123',
-    firstName: 'Emily',
-    lastName: 'Rodriguez',
-    userName: 'em_and_birb',
+    firstName: 'Priya',
+    lastName: 'Sharma',
+    userName: 'priya_and_kiwi',
     bio: 'Bird enthusiast and proud parakeet parent. Kiwi brings so much color and song into my life!',
-    city: 'Miami',
-    state: 'FL',
-    country: 'USA',
+    city: 'Mysuru',
+    state: 'Karnataka',
+    country: 'India',
     discoverable: true,
     pets: [
       {
@@ -179,8 +180,12 @@ async function seedDatabase() {
       });
 
       console.log(`Successfully created user and profile for ${userData.email}`);
-    } catch (error) {
-      console.error(`Failed to create user ${userData.email}:`, error);
+    } catch (error: any) {
+      if (error.code === 'auth/email-already-exists') {
+        console.warn(`User ${userData.email} already exists. Skipping.`);
+      } else {
+        console.error(`Failed to create user ${userData.email}:`, error);
+      }
     }
   }
 
