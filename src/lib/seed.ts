@@ -36,10 +36,11 @@ initializeApp({
 });
 
 const firestore = getFirestore();
+const auth = getAuth();
 
 const DUMMY_USERS = [
   {
-    email: 'sara.p@example.com',
+    email: 'sp@gmail.com',
     firstName: 'Sara',
     lastName: 'Palmer',
     userName: 'sara_paws',
@@ -59,7 +60,7 @@ const DUMMY_USERS = [
     ],
   },
   {
-    email: 'arjun.r@example.com',
+    email: 'ar@gmail.com',
     firstName: 'Arjun',
     lastName: 'Rao',
     userName: 'arjun_and_luna',
@@ -79,7 +80,7 @@ const DUMMY_USERS = [
     ],
   },
   {
-    email: 'chen.w@example.com',
+    email: 'cw@gmail.com',
     firstName: 'Chen',
     lastName: 'Wang',
     userName: 'chen_walks_dogs',
@@ -87,7 +88,7 @@ const DUMMY_USERS = [
     city: 'New York',
     state: 'NY',
     country: 'USA',
-    discoverable: false, // This user will not show up in search
+    discoverable: true,
     pets: [
       {
         name: 'Rocky',
@@ -106,7 +107,7 @@ const DUMMY_USERS = [
     ],
   },
   {
-    email: 'priya.s@example.com',
+    email: 'ps@gmail.com',
     firstName: 'Priya',
     lastName: 'Sharma',
     userName: 'priya_and_kiwi',
@@ -127,20 +128,72 @@ const DUMMY_USERS = [
   },
 ];
 
+async function deleteAllUsers() {
+    try {
+        const listUsersResult = await auth.listUsers(1000);
+        const uidsToDelete = listUsersResult.users.map(userRecord => userRecord.uid);
+        if (uidsToDelete.length > 0) {
+            console.log(`Deleting ${uidsToDelete.length} existing users...`);
+            const result = await auth.deleteUsers(uidsToDelete);
+            console.log(`Successfully deleted ${result.successCount} users.`);
+            if (result.failureCount > 0) {
+                console.warn(`Failed to delete ${result.failureCount} users.`);
+            }
+        } else {
+            console.log('No existing users to delete in Auth.');
+        }
+    } catch (error) {
+        console.error('Error deleting users:', error);
+    }
+}
+
+async function clearCollection(collectionPath: string) {
+    const collectionRef = firestore.collection(collectionPath);
+    const snapshot = await collectionRef.get();
+
+    if (snapshot.empty) {
+        console.log(`Collection '${collectionPath}' is already empty.`);
+        return;
+    }
+
+    console.log(`Deleting ${snapshot.size} documents from '${collectionPath}'...`);
+    const batch = firestore.batch();
+    snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+    console.log(`Successfully cleared collection '${collectionPath}'.`);
+}
+
+
 async function seedDatabase() {
   console.log('Starting database seed...');
-  const batch = firestore.batch();
-  const usersCollection = firestore.collection('users');
-  const petsCollection = firestore.collection('pets');
   
+  // Clean up existing data
+  await deleteAllUsers();
+  await clearCollection('users');
+  await clearCollection('pets');
+  console.log('Cleanup complete. Starting to seed new data...');
+
   for (const userData of DUMMY_USERS) {
     try {
-      console.log(`Creating user profile: ${userData.email}`);
-      const userRef = usersCollection.doc();
-      const uid = userRef.id;
-      
+      console.log(`Creating auth user: ${userData.email}`);
+      const userRecord = await auth.createUser({
+        email: userData.email,
+        password: 'password',
+        displayName: `${userData.firstName} ${userData.lastName}`,
+        emailVerified: true,
+        disabled: false
+      });
+
+      const uid = userRecord.uid;
       const petIds: string[] = [];
       
+      const petsCollection = firestore.collection('pets');
+      const userProfileRef = firestore.collection('users').doc(uid);
+      const batch = firestore.batch();
+
       // Create pet documents
       for (const petData of userData.pets) {
           const petRef = petsCollection.doc();
@@ -154,7 +207,7 @@ async function seedDatabase() {
       }
 
       // Stage user profile document for creation
-      batch.set(userRef, {
+      batch.set(userProfileRef, {
         id: uid,
         email: userData.email,
         userName: userData.userName,
@@ -169,19 +222,15 @@ async function seedDatabase() {
         onboardingCompleted: true,
         profilePicture: `https://i.pravatar.cc/150?u=${userData.email}`
       });
-
-      console.log(`Successfully staged user and profile for ${userData.email}`);
+      
+      await batch.commit();
+      console.log(`Successfully created user, profile, and pets for ${userData.email}`);
     } catch (error: any) {
-      console.error(`Failed to stage user ${userData.email}:`, error);
+      console.error(`Failed to create user ${userData.email}:`, error);
     }
   }
 
-  try {
-    await batch.commit();
-    console.log('Batch commit successful. Database seeding complete!');
-  } catch (error) {
-    console.error('An unexpected error occurred during batch commit:', error);
-  }
+  console.log('Database seeding complete!');
 }
 
 seedDatabase().catch((error) => {
