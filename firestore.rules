@@ -1,15 +1,43 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default open rule for all documents for any authenticated user.
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    
+    // Allow users to read their own profile, and other users to read public profiles
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
     }
-
-    // Explicitly allow full access to conversations and messages for any authenticated user.
-    // This will override any other conflicting rules for this path.
-    match /conversations/{conversationId}/{documents=**} {
-      allow read, write: if request.auth != null;
+    
+    // Pets can be read by anyone, but only written by their owner
+    match /pets/{petId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == resource.data.ownerId;
+    }
+    
+    // Posts can be read by anyone, and written by authenticated users.
+    // Deletion/Update should be restricted to the post author.
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == request.resource.data.authorId;
+      allow update, delete: if request.auth.uid == resource.data.authorId;
+      
+      // Comments can be read by anyone, written by authenticated users, and
+      // deleted/updated by their author.
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth.uid == request.resource.data.authorId;
+        allow update, delete: if request.auth.uid == resource.data.authorId;
+      }
+    }
+    
+    // Conversations can only be read/written by participants.
+    match /conversations/{conversationId} {
+      allow read, create, update: if request.auth.uid in resource.data.participants;
+      
+      // Messages can only be read/written by participants in the conversation.
+      match /messages/{messageId} {
+        allow read, create: if get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants.hasAny([request.auth.uid]);
+      }
     }
   }
 }

@@ -1,9 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, collection, query, where } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Edit, Loader2, PlusCircle, Trash2, MessageSquare } from 'lucide-react';
+import { Edit, Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import { ProfileEditDialog } from './ProfileEditDialog';
 import { PetDialog } from './PetDialog';
 import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -32,7 +32,6 @@ import {
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const router = useRouter();
 
   const userProfileRef = useMemoFirebase(
     () => (user ? doc(firestore, 'users', user.uid) : null),
@@ -62,19 +61,6 @@ export default function ProfilePage() {
     updateDocumentNonBlocking(userRef, { petIds: updatedPetIds });
   };
   
-  const handleStartConversation = async () => {
-    // For now, this is hardcoded to start a conversation with a specific other user.
-    // In a real app, you'd get the other user's ID from the profile you're viewing.
-    if (!user || !userProfile) return;
-    
-    // Let's assume we are viewing another user's profile. For this example,
-    // we need a target user ID. We can't message ourselves.
-    // This part would need to be dynamic based on which profile is being viewed.
-    // Since this is our own profile page, the button shouldn't be here.
-    // But for demonstration, let's just log a message.
-    console.log("Cannot message yourself from your own profile.");
-  };
-
   const isLoading = isUserLoading || isProfileLoading || arePetsLoading;
 
   if (isLoading) {
@@ -92,7 +78,7 @@ export default function ProfilePage() {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
        <div>
-        <h1 className="text-3xl font-bold font-headline mb-6">Profile</h1>
+        <h1 className="text-3xl font-bold font-headline mb-6">My Profile</h1>
       </div>
       <Card className="overflow-hidden">
         <div className="h-32 bg-secondary" />
@@ -107,8 +93,6 @@ export default function ProfilePage() {
             <p className="mt-2 text-sm text-muted-foreground">{userProfile.bio}</p>
           </div>
           <div className="flex gap-2">
-            {/* The message button should only appear on other users' profiles */}
-            {/* <Button variant="outline" onClick={handleStartConversation}><MessageSquare className="mr-2 h-4 w-4" /> Message</Button> */}
             <ProfileEditDialog userProfile={userProfile}>
               <Button variant="outline">
                 <Edit className="mr-2 h-4 w-4" /> Edit Profile

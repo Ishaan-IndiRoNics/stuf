@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, orderBy, addDoc, serverTimestamp, doc, updateDoc, getDocs, writeBatch, limit } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { SendHorizonal, Search, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 function ConversationList({ onSelectConversation, activeConversationId }: { onSelectConversation: (id: string) => void, activeConversationId: string | null }) {
   const { user } = useUser();
@@ -15,22 +16,14 @@ function ConversationList({ onSelectConversation, activeConversationId }: { onSe
 
   const conversationsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    // Simplified query to fetch recent conversations, filtering will happen client-side
     return query(
       collection(firestore, 'conversations'), 
+      where('participants', 'array-contains', user.uid),
       orderBy('lastMessageTimestamp', 'desc'),
-      limit(20) // Limit to a reasonable number to avoid fetching too much data
     );
   }, [user, firestore]);
   
-  const { data: allConversations, isLoading } = useCollection(conversationsQuery);
-
-  // Filter conversations on the client-side
-  const conversations = useMemo(() => {
-    if (!user || !allConversations) return [];
-    return allConversations.filter(convo => convo.participants?.includes(user.uid));
-  }, [allConversations, user]);
-
+  const { data: conversations, isLoading } = useCollection(conversationsQuery);
 
   const getOtherParticipant = (convo: any) => {
     if (!user) return null;
@@ -84,7 +77,7 @@ function ConversationList({ onSelectConversation, activeConversationId }: { onSe
   );
 }
 
-function ChatView({ conversationId }: { conversationId: string | null }) {
+function ChatView({ conversationId, onConversationChange }: { conversationId: string | null, onConversationChange: (id: string | null) => void }) {
   const { user } = useUser();
   const firestore = useFirestore();
   const [newMessage, setNewMessage] = useState('');
@@ -214,8 +207,14 @@ function ChatView({ conversationId }: { conversationId: string | null }) {
 }
 
 
-export default function MessagesPage() {
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+function MessagesPageContent() {
+  const searchParams = useSearchParams();
+  const conversationIdFromUrl = searchParams.get('conversationId');
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(conversationIdFromUrl);
+  
+  useEffect(() => {
+    setActiveConversationId(conversationIdFromUrl);
+  }, [conversationIdFromUrl]);
 
   return (
     <div className="h-[calc(100vh-4rem-1px)] grid md:grid-cols-[300px_1fr] lg:grid-cols-[350px_1fr]">
@@ -235,7 +234,18 @@ export default function MessagesPage() {
       </div>
 
       {/* Chat View */}
-      <ChatView conversationId={activeConversationId} />
+      <ChatView 
+        conversationId={activeConversationId}
+        onConversationChange={setActiveConversationId}
+      />
     </div>
   );
+}
+
+export default function MessagesPage() {
+  return (
+    <React.Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <MessagesPageContent />
+    </React.Suspense>
+  )
 }

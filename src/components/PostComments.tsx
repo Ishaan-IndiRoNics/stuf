@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Send } from 'lucide-react';
+import Link from 'next/link';
 
 function Comment({ comment }: { comment: any }) {
   const firestore = useFirestore();
@@ -60,13 +61,17 @@ function Comment({ comment }: { comment: any }) {
 
   return (
     <div className="flex items-start gap-4">
-      <Avatar className="h-8 w-8">
-        <AvatarImage src={author?.profilePicture} alt={author?.userName} />
-        <AvatarFallback>{author?.userName?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
-      </Avatar>
+      <Link href={`/profile/${comment.authorId}`}>
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={author?.profilePicture} alt={author?.userName} />
+          <AvatarFallback>{author?.userName?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+        </Avatar>
+      </Link>
       <div className="flex-1">
         <div className="flex items-baseline gap-2">
-          <p className="font-semibold text-sm">{author?.userName}</p>
+            <Link href={`/profile/${comment.authorId}`} className="hover:underline">
+              <p className="font-semibold text-sm">{author?.userName}</p>
+            </Link>
           <p className="text-xs text-muted-foreground">{timeAgo}</p>
         </div>
         <p className="text-sm">{comment.content}</p>
@@ -189,5 +194,3 @@ export function PostComments({
     </Sheet>
   );
 }
-
-    

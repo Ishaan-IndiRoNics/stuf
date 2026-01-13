@@ -16,6 +16,7 @@ import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, updateDo
 import { collection, query, orderBy, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { PostComments } from '@/components/PostComments';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 // A component to render a single post, fetching author details separately
 function PostCard({ post }: { post: any }) {
@@ -74,12 +75,16 @@ function PostCard({ post }: { post: any }) {
   return (
     <Card className="overflow-hidden shadow-lg transition-shadow hover:shadow-xl">
       <CardHeader className="flex flex-row items-center gap-4 p-4">
-        <Avatar>
-          <AvatarImage src={author?.profilePicture} alt={author?.userName} />
-          <AvatarFallback>{author?.userName?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
-        </Avatar>
+        <Link href={`/profile/${post.authorId}`} className="flex items-center gap-4">
+          <Avatar>
+            <AvatarImage src={author?.profilePicture} alt={author?.userName} />
+            <AvatarFallback>{author?.userName?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+          </Avatar>
+        </Link>
         <div className="flex-1">
-          <p className="font-semibold">{author?.userName}</p>
+          <Link href={`/profile/${post.authorId}`} className="hover:underline">
+            <p className="font-semibold">{author?.userName}</p>
+          </Link>
           <p className="text-sm text-muted-foreground">{timeAgo}</p>
         </div>
         <Button variant="ghost" size="icon">
