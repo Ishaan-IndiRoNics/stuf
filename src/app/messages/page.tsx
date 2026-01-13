@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, orderBy, addDoc, serverTimestamp, doc, updateDoc, getDocs, writeBatch, limit } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,12 +18,17 @@ function ConversationList({ onSelectConversation, activeConversationId }: { onSe
     if (!user) return null;
     return query(
       collection(firestore, 'conversations'), 
-      where('participants', 'array-contains', user.uid),
       orderBy('lastMessageTimestamp', 'desc'),
     );
   }, [user, firestore]);
   
   const { data: conversations, isLoading } = useCollection(conversationsQuery);
+  
+  const filteredConversations = useMemo(() => {
+      if (!conversations || !user) return [];
+      return conversations.filter(convo => convo.participants.includes(user.uid));
+  }, [conversations, user]);
+
 
   const getOtherParticipant = (convo: any) => {
     if (!user) return null;
@@ -34,14 +39,14 @@ function ConversationList({ onSelectConversation, activeConversationId }: { onSe
     return <div className="p-4"><Loader2 className="animate-spin" /></div>;
   }
   
-  if (!conversations || conversations.length === 0) {
+  if (!filteredConversations || filteredConversations.length === 0) {
     return <div className="p-4 text-center text-sm text-muted-foreground">No conversations yet.</div>
   }
 
   return (
     <ScrollArea className="flex-1">
       <div className="p-2">
-        {conversations.map((convo) => {
+        {filteredConversations.map((convo) => {
           const otherParticipant = getOtherParticipant(convo);
           if (!otherParticipant) return null;
           
