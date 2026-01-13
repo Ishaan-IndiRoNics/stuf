@@ -118,7 +118,7 @@ function AttendeeAvatar({ userId }: { userId: string }) {
     )
 }
 
-export function EventsClient() {
+export function EventsClient({ event }: { event?: any }) {
   const { user } = useUser();
   const firestore = useFirestore();
 
@@ -128,6 +128,10 @@ export function EventsClient() {
   );
   
   const { data: events, isLoading } = useCollection(eventsQuery);
+
+  if (event) {
+    return <EventCard event={event} />;
+  }
   
   return (
       <div className="space-y-6">
