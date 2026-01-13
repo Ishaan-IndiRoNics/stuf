@@ -26,6 +26,7 @@ export async function getInstantAdvice(
   input: GetInstantAdviceInput
 ): Promise<GetInstantAdviceOutput> {
   const { text } = await ai.generate({
+    model: 'googleai/gemini-2.5-flash',
     prompt: `You are a friendly and knowledgeable pet care expert for the PetConnect app.
              Your goal is to provide helpful, safe, and encouraging advice to pet owners.
              Always prioritize the pet's safety and well-being.
