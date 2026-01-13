@@ -77,28 +77,29 @@ const instantAdviceFlow = ai.defineFlow(
     name: 'instantAdviceFlow',
     inputSchema: GetInstantAdviceInputSchema,
     outputSchema: GetInstantAdviceOutputSchema,
+    tools: [getUserPets]
   },
   async ({ userId, question }) => {
 
-    const userPets = await getUserPets({ userId });
-
-    const prompt = `You are a friendly and knowledgeable pet care expert for the PetConnect app. Your goal is to provide helpful, safe, and encouraging advice to pet owners.
-
-    Always prioritize the pet's safety and well-being. If a situation sounds urgent or serious, strongly advise the user to contact a veterinarian immediately. Do not provide medical diagnoses.
-
-    Here is some context about the user you are helping. Use it to tailor your response.
-    
-    User's Pets:
-    ${userPets.length > 0 ? userPets.map(p => `- ${p.name} (${p.breed}, ${p.age})`).join('\n') : "User has not added any pets yet."}
-
-    Now, please answer the following question from the user: "${question}"
-    
-    Use the available tools to search the web if you need more information to provide a comprehensive answer.`;
-
     const llmResponse = await ai.generate({
-      prompt: prompt,
+      prompt: `You are a friendly and knowledgeable pet care expert for the PetConnect app. Your goal is to provide helpful, safe, and encouraging advice to pet owners.
+
+      Always prioritize the pet's safety and well-being. If a situation sounds urgent or serious, strongly advise the user to contact a veterinarian immediately. Do not provide medical diagnoses.
+      
+      Use the getUserPets tool to get context about the user's pets to tailor your response.
+      
+      Now, please answer the following question from the user: "${question}"
+      
+      You also have a Google Search tool available if you need more information to provide a comprehensive answer.`,
       model: 'googleai/gemini-pro',
-      tools: [{tool: 'googleSearch'}],
+      tools: [getUserPets, {tool: 'googleSearch'}],
+      toolConfig: {
+        custom: {
+            "getUserPets": {
+                userId: userId,
+            },
+        },
+      },
       config: {
         safetySettings: [
           {
