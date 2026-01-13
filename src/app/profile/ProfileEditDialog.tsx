@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode, useRef } from 'react';
+import { useState, type ReactNode, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,6 +35,9 @@ const profileSchema = z.object({
   userName: z.string().min(3, 'Username must be at least 3 characters'),
   bio: z.string().max(200, 'Bio must be 200 characters or less').optional(),
   profilePicture: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -63,12 +66,15 @@ export function ProfileEditDialog({ userProfile, children }: ProfileEditDialogPr
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      userName: userProfile.userName || '',
-      bio: userProfile.bio || '',
-      profilePicture: userProfile.profilePicture || '',
-    },
+    defaultValues: userProfile,
   });
+  
+  useEffect(() => {
+    if(isOpen) {
+        form.reset(userProfile);
+        setImagePreview(userProfile.profilePicture || null);
+    }
+  }, [isOpen, userProfile, form]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -110,11 +116,11 @@ export function ProfileEditDialog({ userProfile, children }: ProfileEditDialogPr
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
           <DialogDescription>
-            Make changes to your profile here. Click save when you&apos;re done.
+            Make changes to your profile here. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -177,6 +183,47 @@ export function ProfileEditDialog({ userProfile, children }: ProfileEditDialogPr
                 </FormItem>
               )}
             />
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., San Francisco" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>State</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., CA" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., USA" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

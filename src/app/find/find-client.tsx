@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, and } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,30 +26,76 @@ const PetTypeIcons = {
   Rabbit: <Rabbit className="h-4 w-4" />,
 };
 
-// Mock search results for now
-const mockUsers = [
-  { id: '1', userName: 'Alex', profilePicture: 'https://picsum.photos/seed/user1/100', bio: 'Loves long walks with my golden retriever.', pets: [{ name: 'Buddy', type: 'Dog', breed: 'Golden Retriever', imageUrl: 'https://picsum.photos/seed/pet1/200' }] },
-  { id: '2', userName: 'Maria', profilePicture: 'https://picsum.photos/seed/user2/100', bio: 'Cat mom of two, obsessed with their fluffiness.', pets: [{ name: 'Luna', type: 'Cat', breed: 'Siamese', imageUrl: 'https://picsum.photos/seed/pet2/200' }, { name: 'Milo', type: 'Cat', breed: 'Tabby', imageUrl: 'https://picsum.photos/seed/pet3/200' }] },
-  { id: '3', userName: 'David', profilePicture: 'https://picsum.photos/seed/user3/100', bio: 'Just a guy and his rabbit.', pets: [{ name: 'Thumper', type: 'Rabbit', breed: 'Holland Lop', imageUrl: 'https://picsum.photos/seed/pet4/200' }] },
-];
-
-
 export function FindClient() {
   const [distance, setDistance] = useState([25]);
   const [petType, setPetType] = useState('all');
   const [breed, setBreed] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const firestore = useFirestore();
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
-    // In a real app, you would perform a Firestore query here based on the filters.
-    // For now, we'll just simulate a search and return mock data.
-    setTimeout(() => {
-      setResults(mockUsers);
+    setResults([]);
+
+    try {
+      // In a real app, you would add geo-query capabilities.
+      // For this demo, we'll just filter by users who have location data.
+      const usersRef = collection(firestore, 'users');
+      const q = query(
+        usersRef,
+        // This is a simplification. A real implementation would need geoqueries
+        // which are complex. We will filter for users that have a state value.
+        where('state', '!=', null)
+      );
+
+      const querySnapshot = await getDocs(q);
+      const foundUsers: any[] = [];
+      const petPromises: Promise<any>[] = [];
+
+      querySnapshot.forEach((doc) => {
+        foundUsers.push({ id: doc.id, ...doc.data() });
+      });
+
+      // Fetch pets for all found users
+      for (const user of foundUsers) {
+        if (user.petIds && user.petIds.length > 0) {
+          const petsRef = collection(firestore, 'pets');
+          const petsQuery = query(petsRef, where('id', 'in', user.petIds));
+          petPromises.push(getDocs(petsQuery).then(petSnap => {
+            user.pets = petSnap.docs.map(d => d.data());
+          }));
+        } else {
+          user.pets = [];
+        }
+      }
+      
+      await Promise.all(petPromises);
+
+      // Client-side filtering for pet type and breed
+      let finalResults = foundUsers;
+      if (petType !== 'all' || breed.trim() !== '') {
+          finalResults = foundUsers.filter(user => {
+              if (!user.pets || user.pets.length === 0) return false;
+
+              const hasMatchingPet = user.pets.some((pet: any) => {
+                  const typeMatch = petType === 'all' || pet.breed.toLowerCase().includes(petType.toLowerCase()); // Simple check for now
+                  const breedMatch = breed.trim() === '' || pet.breed.toLowerCase().includes(breed.trim().toLowerCase());
+                  return typeMatch && breedMatch;
+              });
+
+              return hasMatchingPet;
+          })
+      }
+
+
+      setResults(finalResults);
+    } catch (error) {
+      console.error("Error searching users:", error);
+    } finally {
       setIsSearching(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -115,12 +161,13 @@ export function FindClient() {
                                         <h3 className="text-lg font-bold font-headline">{user.userName}</h3>
                                     </Link>
                                     <p className="text-sm text-muted-foreground line-clamp-2">{user.bio}</p>
+                                    {user.city && user.state && <p className="text-xs text-muted-foreground">{user.city}, {user.state}</p>}
                                 </div>
                             </div>
                             <div className="space-y-3">
                                <h4 className="text-sm font-semibold">Pets</h4>
-                               {user.pets.map((pet: any) => (
-                                   <div key={pet.name} className="flex items-center gap-3 text-sm">
+                               {user.pets && user.pets.length > 0 ? user.pets.map((pet: any) => (
+                                   <div key={pet.id || pet.name} className="flex items-center gap-3 text-sm">
                                        <div className="relative h-10 w-10 rounded-md overflow-hidden">
                                            <Image src={pet.imageUrl} alt={pet.name} fill className="object-cover" />
                                        </div>
@@ -129,7 +176,7 @@ export function FindClient() {
                                            <p className="text-muted-foreground text-xs">{pet.breed}</p>
                                        </div>
                                    </div>
-                               ))}
+                               )) : <p className="text-xs text-muted-foreground">No pets added yet.</p>}
                             </div>
                         </CardContent>
                     </Card>

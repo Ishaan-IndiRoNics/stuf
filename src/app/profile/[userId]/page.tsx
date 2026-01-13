@@ -13,8 +13,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { Loader2, MessageSquare, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import { ProfileEditDialog } from '../ProfileEditDialog';
+
 
 export default function UserProfilePage() {
   const { user: currentUser, isUserLoading } = useUser();
@@ -99,6 +101,7 @@ export default function UserProfilePage() {
   }
   
   const isOwnProfile = currentUser?.uid === userId;
+  const locationString = [userProfile.city, userProfile.state, userProfile.country].filter(Boolean).join(', ');
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
@@ -115,15 +118,21 @@ export default function UserProfilePage() {
           <div className="flex-1 text-center sm:text-left">
             <CardTitle className="text-2xl font-headline">{userProfile.firstName} {userProfile.lastName}</CardTitle>
             <CardDescription>@{userProfile.userName}</CardDescription>
+            {locationString && (
+                 <div className="flex items-center justify-center sm:justify-start gap-2 mt-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>{locationString}</span>
+                </div>
+            )}
             <p className="mt-2 text-sm text-muted-foreground">{userProfile.bio}</p>
           </div>
           <div className="flex gap-2">
             {!isOwnProfile ? (
                  <Button variant="outline" onClick={handleStartConversation}><MessageSquare className="mr-2 h-4 w-4" /> Message</Button>
             ) : (
-                <Button asChild variant="outline">
-                    <Link href="/profile">Edit Profile</Link>
-                </Button>
+                <ProfileEditDialog userProfile={userProfile}>
+                    <Button variant="outline">Edit Profile</Button>
+                </ProfileEditDialog>
             )}
           </div>
         </CardHeader>

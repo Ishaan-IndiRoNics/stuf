@@ -31,13 +31,23 @@ import { Button } from '@/components/ui/button';
 import { useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, getFirestore } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
-const MainNav = () => {
+const MainNav = ({ userProfile }: { userProfile: any }) => {
   const pathname = usePathname();
+  const hasLocation = userProfile?.city && userProfile?.state;
+
   const menuItems = [
     { href: '/', label: 'Feed', icon: LayoutGrid },
     { href: '/create-post', label: 'Create Post', icon: PlusSquare },
-    { href: '/find', label: 'Find', icon: Compass },
+    {
+      href: '/find',
+      label: 'Find',
+      icon: Compass,
+      disabled: !hasLocation,
+      tooltip: 'Add your location in your profile to find pet parents.',
+    },
     { href: '/breed-identifier', label: 'Identifier', icon: Scan },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
     { href: '/advice', label: 'Advice', icon: BrainCircuit },
@@ -48,17 +58,29 @@ const MainNav = () => {
     <SidebarMenu>
       {menuItems.map((item) => (
         <SidebarMenuItem key={item.label}>
-          <SidebarMenuButton
-            asChild
-            isActive={pathname === item.href}
-            className="justify-start"
-            tooltip={{ children: item.label, side: 'right' }}
-          >
-            <Link href={item.href}>
-              <item.icon />
-              <span>{item.label}</span>
-            </Link>
-          </SidebarMenuButton>
+          <Tooltip>
+            <TooltipTrigger asChild disabled={!item.disabled}>
+              <div className={cn(item.disabled && "cursor-not-allowed")}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.href}
+                  className="justify-start"
+                  disabled={item.disabled}
+                  tooltip={{ children: item.label, side: 'right' }}
+                >
+                  <Link href={item.href}>
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </div>
+            </TooltipTrigger>
+            {item.disabled && item.tooltip && (
+              <TooltipContent side="right" className="ml-2">
+                <p>{item.tooltip}</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
         </SidebarMenuItem>
       ))}
     </SidebarMenu>
@@ -144,7 +166,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <MainNav />
+          <MainNav userProfile={userProfile} />
         </SidebarContent>
          <SidebarFooter>
           <SidebarMenu>

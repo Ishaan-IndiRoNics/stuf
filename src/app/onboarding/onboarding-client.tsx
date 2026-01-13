@@ -50,6 +50,9 @@ const onboardingSchema = z.object({
   userName: z.string().min(3, 'Username must be at least 3 characters'),
   bio: z.string().max(200, 'Bio must be 200 characters or less').optional(),
   profilePicture: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
   pets: z.array(petSchema),
 });
 
@@ -74,6 +77,9 @@ export function OnboardingClient() {
       userName: '',
       bio: '',
       profilePicture: '',
+      city: '',
+      state: '',
+      country: '',
       pets: [{ name: '', breed: '', age: '', bio: '', imageUrl: '' }],
     },
   });
@@ -165,6 +171,9 @@ export function OnboardingClient() {
         userName: data.userName,
         bio: data.bio,
         profilePicture: data.profilePicture,
+        city: data.city,
+        state: data.state,
+        country: data.country,
         onboardingCompleted: true,
         petIds: petIds
       });
@@ -256,6 +265,47 @@ export function OnboardingClient() {
                 </FormItem>
               )}
             />
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., San Francisco" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>State (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., CA" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., USA" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
           </CardContent>
         </Card>
 
@@ -325,7 +375,7 @@ export function OnboardingClient() {
                     name={`pets.${index}.name`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Pet&apos;s Name</FormLabel>
+                        <FormLabel>Pet's Name</FormLabel>
                         <FormControl>
                           <Input placeholder="e.g., Buddy" {...field} />
                         </FormControl>
@@ -365,7 +415,7 @@ export function OnboardingClient() {
                   name={`pets.${index}.bio`}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pet&apos;s Bio</FormLabel>
+                      <FormLabel>Pet's Bio</FormLabel>
                       <FormControl>
                         <Textarea placeholder="A little about your pet's personality..." {...field} />
                       </FormControl>

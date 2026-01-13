@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Edit, Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { Edit, Loader2, PlusCircle, Trash2, MapPin } from 'lucide-react';
 import { ProfileEditDialog } from './ProfileEditDialog';
 import { PetDialog } from './PetDialog';
 import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -74,6 +74,8 @@ export default function ProfilePage() {
   if (!userProfile) {
     return <div>No profile found.</div>;
   }
+  
+  const locationString = [userProfile.city, userProfile.state, userProfile.country].filter(Boolean).join(', ');
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
@@ -90,6 +92,12 @@ export default function ProfilePage() {
           <div className="flex-1 text-center sm:text-left">
             <CardTitle className="text-2xl font-headline">{userProfile.firstName} {userProfile.lastName}</CardTitle>
             <CardDescription>@{userProfile.userName}</CardDescription>
+            {locationString && (
+                 <div className="flex items-center justify-center sm:justify-start gap-2 mt-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>{locationString}</span>
+                </div>
+            )}
             <p className="mt-2 text-sm text-muted-foreground">{userProfile.bio}</p>
           </div>
           <div className="flex gap-2">
@@ -169,7 +177,7 @@ export default function ProfilePage() {
           ))
           ) : (
              <Card className="sm:col-span-2 flex flex-col items-center justify-center p-12 border-dashed">
-                <p className="text-muted-foreground">You haven&apos;t added any pets yet.</p>
+                <p className="text-muted-foreground">You haven't added any pets yet.</p>
              </Card>
           )}
         </div>

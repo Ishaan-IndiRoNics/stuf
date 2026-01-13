@@ -36,6 +36,18 @@
           "type": "string",
           "description": "A short biography or description of the user."
         },
+        "city": {
+            "type": "string",
+            "description": "The city where the user lives."
+        },
+        "state": {
+            "type": "string",
+            "description": "The state or province where the user lives."
+        },
+        "country": {
+            "type": "string",
+            "description": "The country where the user lives."
+        },
         "petIds": {
           "type": "array",
           "description": "References to Pets. (Relationship: User 1:N Pet)",
