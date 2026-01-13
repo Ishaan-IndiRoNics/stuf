@@ -9,15 +9,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps } from 'firebase-admin/app';
-
-// Initialize Firebase Admin SDK if not already initialized
-if (!getApps().length) {
-  initializeApp();
-}
-const firestore = getFirestore();
-
 
 const GetInstantAdviceInputSchema = z.object({
   userId: z.string().describe('The ID of the user asking for advice.'),
@@ -50,6 +43,14 @@ const getUserPets = ai.defineTool(
       })),
     },
     async ({ userId }) => {
+        let adminApp: App;
+        if (!getApps().length) {
+            adminApp = initializeApp();
+        } else {
+            adminApp = getApps()[0];
+        }
+        const firestore = getFirestore(adminApp);
+        
         console.log("Fetching pets for user:", userId)
         const petsQuery = firestore.collection('pets').where('ownerId', '==', userId);
         const snapshot = await petsQuery.get();
