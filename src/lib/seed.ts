@@ -164,75 +164,23 @@ async function clearCollection(collectionPath: string) {
 async function seedDatabase() {
   console.log('Starting database seed...');
 
-  // Clean up existing data, but not users
-  await clearCollection('pets');
+  // --- Clean up ---
   await clearCollection('posts');
-  await clearCollection('conversations');
-  await clearCollection('events');
-
   const postsCollection = firestore.collection('posts');
-  // Clear subcollections of posts
   const postsSnapshot = await postsCollection.get();
   for (const postDoc of postsSnapshot.docs) {
     await clearCollection(`posts/${postDoc.id}/comments`);
   }
 
-  console.log('Cleanup complete. Starting to seed new data...');
+  console.log('Cleanup of posts complete. Seeding new data...');
 
   const createdUserIds: { [key: string]: string } = {};
 
   for (const userData of DUMMY_USERS) {
     try {
       console.log(`Looking up user: ${userData.email}`);
-      // Find existing user by email instead of creating a new one
       const userRecord = await auth.getUserByEmail(userData.email);
-
-      const uid = userRecord.uid;
-      createdUserIds[userData.userName] = uid; // Store UID for post creation
-      const petIds: string[] = [];
-
-      const petsCollection = firestore.collection('pets');
-      const userProfileRef = firestore.collection('users').doc(uid);
-      const batch = firestore.batch();
-
-      // Create pet documents
-      for (const petData of userData.pets) {
-        const petRef = petsCollection.doc();
-        batch.set(petRef, {
-          ...petData,
-          id: petRef.id,
-          ownerId: uid,
-        });
-        petIds.push(petRef.id);
-        console.log(
-          `  - Staging pet: ${petData.name} for user ${userData.email}`
-        );
-      }
-
-      // Stage user profile document for creation/update
-      batch.set(
-        userProfileRef,
-        {
-          id: uid,
-          email: userData.email,
-          userName: userData.userName,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          bio: userData.bio,
-          city: userData.city,
-          state: userData.state,
-          country: userData.country,
-          petIds: petIds,
-          discoverable: userData.discoverable,
-          onboardingCompleted: true,
-          profilePicture:
-            userRecord.photoURL || `https://i.pravatar.cc/150?u=${userData.email}`,
-        },
-        { merge: true }
-      ); // Use merge to avoid overwriting existing fields unnecessarily
-
-      await batch.commit();
-      console.log(`Successfully seeded data for existing user ${userData.email}`);
+      createdUserIds[userData.userName] = userRecord.uid;
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
         console.warn(
@@ -246,7 +194,6 @@ async function seedDatabase() {
 
   // --- Seed Posts ---
   console.log('Seeding posts...');
-
   const DUMMY_POSTS = [
     {
       authorUserName: 'sara_paws',
@@ -299,40 +246,54 @@ async function seedDatabase() {
     }
   }
 
-  // --- Seed Events ---
-  console.log('Seeding events...');
-  const eventsCollection = firestore.collection('events');
-  const DUMMY_EVENTS = [
+  // --- Seed Tips & Advice ---
+  console.log('Seeding tips and advice...');
+  const adviceCollection = firestore.collection('advicePosts');
+  const DUMMY_TIPS = [
     {
         authorUserName: 'sara_paws',
-        title: 'Golden Retriever Meetup',
-        description: 'A friendly meetup for Golden Retrievers and their owners at the park. Let\'s let them run and play!',
-        location: 'Central Park, Boulder',
-        petType: 'Dog',
-        date: Timestamp.fromMillis(Timestamp.now().toMillis() + 604800000), // 1 week from now
-        attendees: [],
+        title: 'How to stop a dog from pulling on the leash?',
+        content: "We've had great success with a front-clip harness. It gently redirects Max when he tries to pull, and our walks are so much more enjoyable now. Consistency is key!",
+        createdAt: Timestamp.fromMillis(Timestamp.now().toMillis() - 3600000 * 5), // 5 hours ago
+        upvotes: [createdUserIds['chen_walks_dogs']],
+        downvotes: [],
+        commentCount: 0,
+    },
+    {
+        authorUserName: 'arjun_and_luna',
+        title: 'Best way to introduce a new cat to your home?',
+        content: "Start by keeping the new cat in a separate room for a few days with their own food, water, and litter box. This lets them get used to the sounds and smells of the house. Then, do scent swapping with blankets before letting them see each other.",
+        createdAt: Timestamp.fromMillis(Timestamp.now().toMillis() - 86400000 * 3), // 3 days ago
+        upvotes: [createdUserIds['sara_paws'], createdUserIds['priya_and_kiwi']],
+        downvotes: [],
+        commentCount: 0,
     },
     {
         authorUserName: 'chen_walks_dogs',
-        title: 'Small Dog Playdate',
-        description: 'Bring your small dogs for a fun playdate. All small breeds are welcome.',
-        location: 'Dog Run, Washington Square Park, NYC',
-        petType: 'Dog',
-        date: Timestamp.fromMillis(Timestamp.now().toMillis() + 864000000), // 10 days from now
-        attendees: [createdUserIds['sara_paws']],
+        title: 'My dog is scared of fireworks. What can I do?',
+        content: "Create a safe, cozy den for them away from windows. Playing some calming music or white noise can also help drown out the sounds. A ThunderShirt has also worked wonders for our Beagle, Apollo.",
+        createdAt: Timestamp.fromMillis(Timestamp.now().toMillis() - 86400000 * 7), // 7 days ago
+        upvotes: [],
+        downvotes: [],
+        commentCount: 0,
     }
   ];
 
-  for (const eventData of DUMMY_EVENTS) {
-    const authorId = createdUserIds[eventData.authorUserName];
+  for (const tipData of DUMMY_TIPS) {
+    const authorId = createdUserIds[tipData.authorUserName];
     if (authorId) {
-        const eventRef = eventsCollection.doc();
-        await eventRef.set({
-            ...eventData,
-            authorId,
-            id: eventRef.id
+        const tipRef = adviceCollection.doc();
+        await tipRef.set({
+            authorId: authorId,
+            title: tipData.title,
+            content: tipData.content,
+            createdAt: tipData.createdAt,
+            upvotes: tipData.upvotes,
+            downvotes: tipData.downvotes,
+            commentCount: tipData.commentCount,
+            id: tipRef.id
         });
-        console.log(`  - Created event "${eventData.title}"`);
+        console.log(`  - Created tip "${tipData.title}"`);
     }
   }
 
