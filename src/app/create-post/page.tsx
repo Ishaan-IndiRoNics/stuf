@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
@@ -9,14 +9,12 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, X } from 'lucide-react';
+import React from 'react';
 
 const fileToDataUri = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -26,16 +24,27 @@ const fileToDataUri = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-export default function CreatePostPage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const router = useRouter();
-  const { toast } = useToast();
-  const [content, setContent] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+function CreatePostClient() {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { toast } = useToast();
+    
+    const repostContent = searchParams.get('repostContent');
+    const repostAuthor = searchParams.get('repostAuthor');
+    
+    const [content, setContent] = useState('');
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (repostContent && repostAuthor) {
+            setContent(`Reposting from @${repostAuthor}:\n\n"${repostContent}"`);
+        }
+    }, [repostContent, repostAuthor]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -182,4 +191,13 @@ export default function CreatePostPage() {
       </Card>
     </div>
   );
+}
+
+
+export default function CreatePostPage() {
+    return (
+        <React.Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-primary" />}>
+            <CreatePostClient />
+        </React.Suspense>
+    )
 }

@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Card,
@@ -11,7 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, MoreHorizontal, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Repeat, Loader2 } from 'lucide-react';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { PostComments } from '@/components/PostComments';
@@ -22,6 +23,7 @@ import Link from 'next/link';
 function PostCard({ post }: { post: any }) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
   // Memoize the document reference for the post's author
@@ -44,6 +46,13 @@ function PostCard({ post }: { post: any }) {
       likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
     });
   };
+
+  const handleRepost = () => {
+    if (!author) return;
+    const url = `/create-post?repostContent=${encodeURIComponent(post.content)}&repostAuthor=${encodeURIComponent(author.userName)}`;
+    router.push(url);
+  };
+
 
   if (isAuthorLoading) {
     return (
@@ -87,9 +96,6 @@ function PostCard({ post }: { post: any }) {
           </Link>
           <p className="text-sm text-muted-foreground">{timeAgo}</p>
         </div>
-        <Button variant="ghost" size="icon">
-          <MoreHorizontal />
-        </Button>
       </CardHeader>
       <CardContent className="p-0">
         {post.imageUrl && (
@@ -112,6 +118,10 @@ function PostCard({ post }: { post: any }) {
         <Button variant="ghost" size="sm" onClick={() => setIsCommentsOpen(true)}>
           <MessageCircle className="mr-2" />
           <span>{post.commentCount || 0}</span>
+        </Button>
+        <Button variant="ghost" size="sm" onClick={handleRepost}>
+          <Repeat className="mr-2" />
+          <span>Repost</span>
         </Button>
       </CardFooter>
        <PostComments 
@@ -137,6 +147,14 @@ export default function SocialFeedPage() {
   
   // Fetch the posts collection
   const { data: posts, isLoading } = useCollection(postsQuery);
+
+  if (!user) {
+    return (
+      <div className="flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto">
