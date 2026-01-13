@@ -18,9 +18,6 @@ import {
 } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 
-// Initialize Firebase Admin SDK
-const { firestore } = initializeFirebase();
-
 const GetInstantAdviceInputSchema = z.object({
   userId: z.string().describe('The ID of the user asking for advice.'),
   question: z.string().describe('The question the user is asking.'),
@@ -52,6 +49,8 @@ const getUserPets = ai.defineTool(
       })),
     },
     async ({ userId }) => {
+        // Initialize Firebase on the server, inside the tool
+        const { firestore } = initializeFirebase();
         console.log("Fetching pets for user:", userId)
         const petsQuery = query(
             collection(firestore, 'pets'),
@@ -102,7 +101,7 @@ const instantAdviceFlow = ai.defineFlow(
 
     const llmResponse = await ai.generate({
       prompt: prompt,
-      model: 'googleai/gemini-2.5-flash',
+      model: 'googleai/gemini-pro',
       tools: [{tool: 'googleSearch'}],
       config: {
         safetySettings: [
