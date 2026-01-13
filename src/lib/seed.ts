@@ -36,12 +36,10 @@ initializeApp({
 });
 
 const firestore = getFirestore();
-const auth = getAuth();
 
 const DUMMY_USERS = [
   {
     email: 'sara.p@example.com',
-    password: 'password123',
     firstName: 'Sara',
     lastName: 'Palmer',
     userName: 'sara_paws',
@@ -62,7 +60,6 @@ const DUMMY_USERS = [
   },
   {
     email: 'arjun.r@example.com',
-    password: 'password123',
     firstName: 'Arjun',
     lastName: 'Rao',
     userName: 'arjun_and_luna',
@@ -83,7 +80,6 @@ const DUMMY_USERS = [
   },
   {
     email: 'chen.w@example.com',
-    password: 'password123',
     firstName: 'Chen',
     lastName: 'Wang',
     userName: 'chen_walks_dogs',
@@ -111,7 +107,6 @@ const DUMMY_USERS = [
   },
   {
     email: 'priya.s@example.com',
-    password: 'password123',
     firstName: 'Priya',
     lastName: 'Sharma',
     userName: 'priya_and_kiwi',
@@ -134,36 +129,39 @@ const DUMMY_USERS = [
 
 async function seedDatabase() {
   console.log('Starting database seed...');
+  const batch = firestore.batch();
+  const usersCollection = firestore.collection('users');
+  const petsCollection = firestore.collection('pets');
+  
+  // Check if users already exist
+  const existingUsersSnap = await usersCollection.limit(1).get();
+  if (!existingUsersSnap.empty) {
+      console.warn('Users collection is not empty. Skipping seed to avoid duplicates.');
+      return;
+  }
 
   for (const userData of DUMMY_USERS) {
     try {
-      console.log(`Creating user: ${userData.email}`);
-
-      // Create user in Firebase Auth
-      const userRecord = await auth.createUser({
-        email: userData.email,
-        password: userData.password,
-        displayName: `${userData.firstName} ${userData.lastName}`,
-      });
-      const uid = userRecord.uid;
+      console.log(`Creating user profile: ${userData.email}`);
+      const userRef = usersCollection.doc();
+      const uid = userRef.id;
       
       const petIds: string[] = [];
       
       // Create pet documents
       for (const petData of userData.pets) {
-          const petRef = firestore.collection('pets').doc();
-          await petRef.set({
+          const petRef = petsCollection.doc();
+          batch.set(petRef, {
               ...petData,
               id: petRef.id,
               ownerId: uid,
           });
           petIds.push(petRef.id);
-          console.log(`  - Created pet: ${petData.name} for user ${userData.email}`);
+          console.log(`  - Staging pet: ${petData.name} for user ${userData.email}`);
       }
 
-      // Create user profile document in Firestore
-      const userProfileRef = firestore.collection('users').doc(uid);
-      await userProfileRef.set({
+      // Stage user profile document for creation
+      batch.set(userRef, {
         id: uid,
         email: userData.email,
         userName: userData.userName,
@@ -175,21 +173,22 @@ async function seedDatabase() {
         country: userData.country,
         petIds: petIds,
         discoverable: userData.discoverable,
-        onboardingCompleted: true, // Mark onboarding as complete for these users
+        onboardingCompleted: true,
         profilePicture: `https://i.pravatar.cc/150?u=${userData.email}`
       });
 
-      console.log(`Successfully created user and profile for ${userData.email}`);
+      console.log(`Successfully staged user and profile for ${userData.email}`);
     } catch (error: any) {
-      if (error.code === 'auth/email-already-exists') {
-        console.warn(`User ${userData.email} already exists. Skipping.`);
-      } else {
-        console.error(`Failed to create user ${userData.email}:`, error);
-      }
+      console.error(`Failed to stage user ${userData.email}:`, error);
     }
   }
 
-  console.log('Database seeding complete!');
+  try {
+    await batch.commit();
+    console.log('Batch commit successful. Database seeding complete!');
+  } catch (error) {
+    console.error('An unexpected error occurred during batch commit:', error);
+  }
 }
 
 seedDatabase().catch((error) => {
