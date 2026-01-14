@@ -17,6 +17,7 @@ import {
   CalendarDays,
   Lightbulb,
   CalendarCheck,
+  Siren,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -58,6 +59,7 @@ const MainNav = ({ userProfile }: { userProfile: any }) => {
     { href: '/breed-identifier', label: 'Identifier', icon: Scan },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
     { href: '/profile', label: 'Profile', icon: User },
+    { href: '/profile', label: 'Send Alert', icon: Siren, isAlert: true },
   ];
 
   return (
@@ -69,8 +71,8 @@ const MainNav = ({ userProfile }: { userProfile: any }) => {
               <div className={cn(item.disabled && "cursor-not-allowed")}>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname === item.href}
-                  className="justify-start"
+                  isActive={pathname === item.href && !item.isAlert}
+                  className={cn("justify-start", item.isAlert && "text-destructive hover:bg-destructive/10 hover:text-destructive")}
                   disabled={item.disabled}
                   tooltip={{ children: item.label, side: 'right' }}
                 >
@@ -217,5 +219,3 @@ export function AppLayout({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
-
-    
