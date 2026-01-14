@@ -12,6 +12,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Loader2, MessageSquare, MapPin, PlusCircle, HeartPulse } from 'lucide-react';
 import Link from 'next/link';
