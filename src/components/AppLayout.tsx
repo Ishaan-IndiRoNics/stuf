@@ -41,7 +41,7 @@ const MainNav = ({ userProfile }: { userProfile: any }) => {
   const hasLocation = userProfile?.city && userProfile?.state;
 
   const menuItems = [
-    { href: '/', label: 'Feed', icon: LayoutGrid },
+    { href: '/feed', label: 'Feed', icon: LayoutGrid },
     { href: '/create-post', label: 'Create Post', icon: PlusSquare },
     {
       href: '/find',
@@ -103,36 +103,40 @@ export function AppLayout({ children }: { children: ReactNode }) {
   );
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/landing';
   const isOnboardingPage = pathname === '/onboarding';
 
   useEffect(() => {
     const isLoading = isUserLoading || (user && isProfileLoading);
     if (isLoading) return;
 
-    if (!user && !isAuthPage) {
-      router.push('/login');
+    if (!user && !isAuthPage && pathname !== '/') {
+      router.push('/landing');
     }
 
     if (user) {
       if (isAuthPage) {
-        router.push('/');
+        router.push('/feed');
       } else if (userProfile && !userProfile.onboardingCompleted && !isOnboardingPage) {
         router.push('/onboarding');
       } else if (userProfile && userProfile.onboardingCompleted && isOnboardingPage) {
-        router.push('/');
+        router.push('/feed');
+      } else if (pathname === '/') {
+        router.push('/feed');
       }
+    } else if (pathname === '/') {
+       router.push('/landing');
     }
-  }, [user, userProfile, isUserLoading, isProfileLoading, isAuthPage, isOnboardingPage, router]);
+  }, [user, userProfile, isUserLoading, isProfileLoading, isAuthPage, isOnboardingPage, router, pathname]);
 
   const handleLogout = async () => {
     await signOut(auth);
-    router.push('/login');
+    router.push('/landing');
   };
 
   const isLoading = isUserLoading || (user && isProfileLoading);
 
-  if (isLoading && !isAuthPage) {
+  if (isLoading && !isAuthPage && pathname !== '/') {
      return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -140,17 +144,26 @@ export function AppLayout({ children }: { children: ReactNode }) {
     );
   }
   
-  if (isAuthPage || isOnboardingPage || !user) {
+  if (isAuthPage || !user) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
         {children}
       </main>
     );
   }
+  
+  if (isOnboardingPage) {
+     return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+        {children}
+      </main>
+    );
+  }
+
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <Button
@@ -159,7 +172,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               className="h-10 w-10 shrink-0"
               asChild
             >
-              <Link href="/">
+              <Link href="/feed">
                 <PawPrint className="text-primary" />
               </Link>
             </Button>
@@ -188,10 +201,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 md:hidden">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
+          <Link href="/feed" className="flex items-center gap-2 font-semibold">
             <PawPrint className="h-6 w-6 text-primary" />
             <span className="font-headline text-lg">PetConnect</span>
           </Link>
+          <SidebarTrigger />
+        </header>
+         <header className="sticky top-0 z-10 hidden h-16 items-center justify-start gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6 md:flex">
           <SidebarTrigger />
         </header>
         <div className="p-4 sm:p-6">{children}</div>
