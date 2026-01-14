@@ -89,6 +89,7 @@ export function BreedIdentifierClient() {
             onSubmit={handleFormSubmit}
             className="space-y-4"
           >
+            <input type="hidden" name="photoDataUri" value={imagePreview || ''} />
             {imagePreview ? (
               <div className="relative group w-full aspect-square border-2 border-dashed rounded-lg flex items-center justify-center">
                 <Image

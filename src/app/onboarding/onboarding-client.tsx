@@ -28,7 +28,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { identifyPetBreedFromImage } from '@/ai/flows/identify-pet-breed-from-image';
+import { identifyBreedAction } from '@/lib/actions';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
@@ -115,11 +115,17 @@ export function OnboardingClient() {
         setPetImagePreviews(newPreviews);
         form.setValue(`pets.${index}.imageUrl`, dataUri);
 
-        const result = await identifyPetBreedFromImage({ photoDataUri: dataUri });
-        if (result.identifiedBreed) {
-          form.setValue(`pets.${index}.breed`, result.identifiedBreed);
-          toast({ title: 'Breed Identified!', description: `We think it's a ${result.identifiedBreed}.` });
+        const formData = new FormData();
+        formData.set('photoDataUri', dataUri);
+        const result = await identifyBreedAction(null, formData);
+
+        if (result.success && result.data) {
+          form.setValue(`pets.${index}.breed`, result.data.identifiedBreed);
+          toast({ title: 'Breed Identified!', description: `We think it's a ${result.data.identifiedBreed}.` });
+        } else {
+          throw new Error(result.error || 'Failed to identify breed.');
         }
+
       } catch (error) {
         console.error("Error identifying breed:", error);
         toast({ variant: 'destructive', title: 'Could not identify breed.' });
