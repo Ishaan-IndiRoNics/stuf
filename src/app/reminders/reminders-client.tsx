@@ -77,8 +77,7 @@ export function RemindersClient() {
       user
         ? query(
             collection(firestore, 'reminders'),
-            where('userId', '==', user.uid),
-            orderBy('dateTime', 'asc')
+            where('userId', '==', user.uid)
           )
         : null,
     [firestore, user]
@@ -123,8 +122,13 @@ export function RemindersClient() {
     toast({ title: 'Reminder Removed' });
   };
 
-  const upcomingReminders = useMemo(() => reminders?.filter(r => !r.completed) || [], [reminders]);
-  const completedReminders = useMemo(() => reminders?.filter(r => r.completed) || [], [reminders]);
+  const sortedReminders = useMemo(() => {
+    if (!reminders) return [];
+    return [...reminders].sort((a, b) => a.dateTime.seconds - b.dateTime.seconds);
+  }, [reminders]);
+
+  const upcomingReminders = useMemo(() => sortedReminders.filter(r => !r.completed) || [], [sortedReminders]);
+  const completedReminders = useMemo(() => sortedReminders.filter(r => r.completed) || [], [sortedReminders]);
 
 
   return (

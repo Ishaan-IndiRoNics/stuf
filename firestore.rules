@@ -48,9 +48,8 @@ service cloud.firestore {
     }
     
     match /reminders/{reminderId} {
-      allow get: if request.auth.uid == resource.data.userId;
       allow list: if request.query.where.size == 1 && request.query.where[0].field == 'userId' && request.query.where[0].value == request.auth.uid;
-      allow write: if request.auth.uid == request.resource.data.userId;
+      allow read, write: if request.auth.uid == resource.data.userId || (request.resource.data != null && request.resource.data.userId == request.auth.uid);
     }
   }
 }
