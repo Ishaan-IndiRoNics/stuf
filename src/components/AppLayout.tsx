@@ -103,40 +103,36 @@ export function AppLayout({ children }: { children: ReactNode }) {
   );
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
-  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/landing';
+  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/';
   const isOnboardingPage = pathname === '/onboarding';
 
   useEffect(() => {
     const isLoading = isUserLoading || (user && isProfileLoading);
     if (isLoading) return;
 
-    if (!user && !isAuthPage && pathname !== '/') {
-      router.push('/landing');
+    if (!user && !isAuthPage) {
+      router.push('/');
     }
 
     if (user) {
-      if (isAuthPage) {
+      if (isAuthPage && pathname !== '/') {
         router.push('/feed');
       } else if (userProfile && !userProfile.onboardingCompleted && !isOnboardingPage) {
         router.push('/onboarding');
       } else if (userProfile && userProfile.onboardingCompleted && isOnboardingPage) {
         router.push('/feed');
-      } else if (pathname === '/') {
-        router.push('/feed');
       }
-    } else if (pathname === '/') {
-       router.push('/landing');
     }
   }, [user, userProfile, isUserLoading, isProfileLoading, isAuthPage, isOnboardingPage, router, pathname]);
 
   const handleLogout = async () => {
     await signOut(auth);
-    router.push('/landing');
+    router.push('/');
   };
 
   const isLoading = isUserLoading || (user && isProfileLoading);
 
-  if (isLoading && !isAuthPage && pathname !== '/') {
+  if (isLoading && !isAuthPage) {
      return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
