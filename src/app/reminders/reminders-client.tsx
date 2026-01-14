@@ -14,7 +14,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, query, where, orderBy, doc, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, doc, Timestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -73,16 +73,16 @@ export function RemindersClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const remindersQuery = useMemoFirebase(
-    () =>
-      user
-        ? query(
-            collection(firestore, 'reminders'),
-            where('userId', '==', user.uid)
-          )
-        : null,
+    () => user ? query(collection(firestore, 'reminders')) : null,
     [firestore, user]
   );
-  const { data: reminders, isLoading } = useCollection(remindersQuery);
+  const { data: allReminders, isLoading } = useCollection(remindersQuery);
+  
+  const reminders = useMemo(() => {
+    if (!allReminders || !user) return [];
+    return allReminders.filter(r => r.userId === user.uid);
+  }, [allReminders, user]);
+
 
   const form = useForm<ReminderFormValues>({
     resolver: zodResolver(reminderSchema),
