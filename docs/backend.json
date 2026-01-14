@@ -317,7 +317,14 @@
         "notes": { "type": "string", "description": "Additional details for the reminder." },
         "dateTime": { "type": "string", "format": "date-time", "description": "The date and time the reminder is set for." },
         "completed": { "type": "boolean", "description": "Whether the reminder has been marked as complete." },
-        "frequency": { "type": "string", "enum": ["once", "daily", "weekly", "monthly"], "description": "The recurrence frequency of the reminder." }
+        "recurrence": {
+          "type": "object",
+          "description": "The recurrence rule for the reminder.",
+          "properties": {
+            "frequency": { "type": "string", "enum": ["once", "daily", "weekly", "monthly"] },
+            "dayOfWeek": { "type": "array", "items": { "type": "string" } }
+          }
+        }
       },
       "required": ["id", "userId", "title", "dateTime", "completed"]
     }

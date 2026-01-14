@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, isPast, isToday } from 'date-fns';
@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -30,7 +29,6 @@ import {
   Loader2,
   PlusCircle,
   Trash2,
-  CalendarCheck,
   CheckCircle2,
   Circle,
   Repeat,
@@ -50,7 +48,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -63,6 +60,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 
 const reminderSchema = z.object({
@@ -70,10 +68,23 @@ const reminderSchema = z.object({
   notes: z.string().optional(),
   date: z.coerce.date({ required_error: 'A date is required.' }),
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Please enter a valid time in HH:MM format."),
-  frequency: z.enum(['once', 'daily', 'weekly', 'monthly']),
+  recurrence: z.object({
+    frequency: z.enum(['once', 'daily', 'weekly', 'monthly']),
+    dayOfWeek: z.array(z.string()).optional(),
+  })
 });
 
 type ReminderFormValues = z.infer<typeof reminderSchema>;
+
+const daysOfWeek = [
+  { value: 'SU', label: 'S' },
+  { value: 'MO', label: 'M' },
+  { value: 'TU', label: 'T' },
+  { value: 'WE', label: 'W' },
+  { value: 'TH', label: 'T' },
+  { value: 'FR', label: 'F' },
+  { value: 'SA', label: 'S' },
+];
 
 export function RemindersClient() {
   const { user } = useUser();
@@ -95,11 +106,23 @@ export function RemindersClient() {
 
   const form = useForm<ReminderFormValues>({
     resolver: zodResolver(reminderSchema),
-    defaultValues: { title: '', notes: '', time: '09:00', frequency: 'once' },
+    defaultValues: {
+      title: '',
+      notes: '',
+      time: '09:00',
+      recurrence: { frequency: 'once', dayOfWeek: [] },
+    },
   });
+
+  const frequency = form.watch('recurrence.frequency');
 
   const onSubmit = async (data: ReminderFormValues) => {
     if (!user) return;
+    if (data.recurrence.frequency === 'weekly' && (!data.recurrence.dayOfWeek || data.recurrence.dayOfWeek.length === 0)) {
+        form.setError('recurrence.dayOfWeek', { type: 'manual', message: 'Please select at least one day for weekly reminders.' });
+        return;
+    }
+
     setIsSubmitting(true);
     
     const [hours, minutes] = data.time.split(':').map(Number);
@@ -113,11 +136,16 @@ export function RemindersClient() {
       notes: data.notes || '',
       dateTime: Timestamp.fromDate(combinedDateTime),
       completed: false,
-      frequency: data.frequency,
+      recurrence: data.recurrence,
     });
     
     toast({ title: 'Reminder Set!', description: `We'll help you remember to ${data.title}.` });
-    form.reset({ title: '', notes: '', time: '09:00', frequency: 'once' });
+    form.reset({
+      title: '',
+      notes: '',
+      time: '09:00',
+      recurrence: { frequency: 'once', dayOfWeek: [] },
+    });
     setIsSubmitting(false);
   };
   
@@ -183,7 +211,7 @@ export function RemindersClient() {
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                  <FormField
                   control={form.control}
                   name="date"
@@ -214,12 +242,14 @@ export function RemindersClient() {
                     </FormItem>
                   )}
                 />
+              </div>
+              <div className="space-y-2">
                  <FormField
                   control={form.control}
-                  name="frequency"
+                  name="recurrence.frequency"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Frequency</FormLabel>
+                      <FormLabel>Repeats</FormLabel>
                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -237,6 +267,33 @@ export function RemindersClient() {
                     </FormItem>
                   )}
                 />
+                {frequency === 'weekly' && (
+                    <FormField
+                      control={form.control}
+                      name="recurrence.dayOfWeek"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>On</FormLabel>
+                          <FormControl>
+                            <ToggleGroup
+                              type="multiple"
+                              variant="outline"
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              className="justify-start gap-1"
+                            >
+                              {daysOfWeek.map(day => (
+                                <ToggleGroupItem key={day.value} value={day.value} className="w-9 h-9">
+                                  {day.label}
+                                </ToggleGroupItem>
+                              ))}
+                            </ToggleGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                )}
               </div>
               <div className="flex justify-end">
                 <Button type="submit" disabled={isSubmitting}>
@@ -280,10 +337,24 @@ export function RemindersClient() {
   );
 }
 
+function formatRecurrence(recurrence: ReminderFormValues['recurrence']) {
+    if (!recurrence || recurrence.frequency === 'once') return null;
+
+    const base = `Repeats ${recurrence.frequency}`;
+    if (recurrence.frequency === 'weekly' && recurrence.dayOfWeek && recurrence.dayOfWeek.length > 0) {
+        const sortedDays = recurrence.dayOfWeek
+            .sort((a, b) => daysOfWeek.findIndex(d => d.value === a) - daysOfWeek.findIndex(d => d.value === b))
+            .join(', ');
+        return `${base} on ${sortedDays}`;
+    }
+    return base;
+}
+
 
 function ReminderItem({ reminder, onToggle, onDelete }: { reminder: any, onToggle: (r: any) => void, onDelete: (id: string) => void}) {
     const dateTime = reminder.dateTime.toDate();
     const isOverdue = !reminder.completed && isPast(dateTime);
+    const recurrenceText = formatRecurrence(reminder.recurrence);
     
     return (
         <div className={cn(
@@ -303,10 +374,10 @@ function ReminderItem({ reminder, onToggle, onDelete }: { reminder: any, onToggl
                       <p className={cn(isOverdue && "text-destructive font-semibold")}>
                           {isToday(dateTime) ? `Today at ${format(dateTime, 'p')}` : format(dateTime, 'MMM d, yyyy @ p')}
                       </p>
-                      {reminder.frequency && reminder.frequency !== 'once' && (
-                        <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted">
+                      {recurrenceText && (
+                        <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted capitalize">
                           <Repeat className="h-3 w-3" />
-                          <span className="capitalize">{reminder.frequency}</span>
+                          <span>{recurrenceText}</span>
                         </div>
                       )}
                     </div>
