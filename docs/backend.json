@@ -304,6 +304,21 @@
         "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the comment was created." }
       },
       "required": ["id", "authorId", "advicePostId", "content", "createdAt"]
+    },
+    "Reminder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reminder",
+      "type": "object",
+      "description": "Represents a user-scheduled reminder for their pets.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the reminder." },
+        "userId": { "type": "string", "description": "The UID of the user who owns this reminder." },
+        "title": { "type": "string", "description": "The title or main text of the reminder." },
+        "notes": { "type": "string", "description": "Additional details for the reminder." },
+        "dateTime": { "type": "string", "format": "date-time", "description": "The date and time the reminder is set for." },
+        "completed": { "type": "boolean", "description": "Whether the reminder has been marked as complete." }
+      },
+      "required": ["id", "userId", "title", "dateTime", "completed"]
     }
   },
   "auth": {
@@ -402,6 +417,15 @@
             { "name": "advicePostId", "description": "The unique ID of the advice post." },
             { "name": "commentId", "description": "The unique ID of the comment." }
           ]
+        }
+      },
+      {
+        "path": "reminders/{reminderId}",
+        "definition": {
+          "entityName": "Reminder",
+          "schema": { "$ref": "#/backend/entities/Reminder" },
+          "description": "Stores user-specific reminders.",
+          "params": [{ "name": "reminderId", "description": "The unique ID of the reminder." }]
         }
       }
     ],
